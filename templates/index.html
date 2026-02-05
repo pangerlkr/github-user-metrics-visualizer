@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub User Metrics Visualizer</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        .search-box {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            margin-bottom: 30px;
+        }
+        .search-form {
+            display: flex;
+            gap: 10px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e1e4e8;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+        button {
+            padding: 15px 30px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+        .user-info {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            margin-bottom: 30px;
+            display: none;
+        }
+        .user-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: 3px solid #667eea;
+        }
+        .user-details h2 {
+            color: #24292e;
+            margin-bottom: 5px;
+        }
+        .user-details p {
+            color: #586069;
+            margin-bottom: 5px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .stat-card {
+            background: #f6f8fa;
+            padding: 20px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        .stat-card h3 {
+            color: #586069;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        .stat-card p {
+            color: #24292e;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .charts-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        .chart-box {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        .chart-box h3 {
+            color: #24292e;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .loading {
+            text-align: center;
+            color: white;
+            font-size: 18px;
+            display: none;
+        }
+        .error {
+            background: #f85149;
+            color: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>GitHub User Metrics Visualizer</h1>
+            <p>Enter a GitHub username to view their statistics and metrics</p>
+        </header>
+
+        <div class="search-box">
+            <form class="search-form" id="searchForm">
+                <input type="text" id="username" placeholder="Enter GitHub username" required>
+                <button type="submit">Analyze</button>
+            </form>
+        </div>
+
+        <div class="loading" id="loading">Loading user data...</div>
+        <div class="error" id="error"></div>
+
+        <div class="user-info" id="userInfo">
+            <div class="user-header">
+                <img class="avatar" id="avatar" src="" alt="User avatar">
+                <div class="user-details">
+                    <h2 id="name"></h2>
+                    <p id="username-display"></p>
+                    <p id="bio"></p>
+                    <p id="location"></p>
+                    <p id="company"></p>
+                </div>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Repositories</h3>
+                    <p id="repos">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Followers</h3>
+                    <p id="followers">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Following</h3>
+                    <p id="following">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Stars</h3>
+                    <p id="stars">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Forks</h3>
+                    <p id="forks">0</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="charts-container" id="chartsContainer" style="display:none">
+            <div class="chart-box">
+                <h3>Programming Languages</h3>
+                <canvas id="languagesChart"></canvas>
+            </div>
+            <div class="chart-box">
+                <h3>Activity Breakdown</h3>
+                <canvas id="activityChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('searchForm');
+        const loading = document.getElementById('loading');
+        const error = document.getElementById('error');
+        const userInfo = document.getElementById('userInfo');
+        const chartsContainer = document.getElementById('chartsContainer');
+
+        let languagesChart, activityChart;
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value.trim();
+            if (!username) return;
+
+            // Reset UI
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            userInfo.style.display = 'none';
+            chartsContainer.style.display = 'none';
+
+            try {
+                const response = await fetch(`/api/user/${username}`);
+                if (!response.ok) {
+                    throw new Error('User not found');
+                }
+                const data = await response.json();
+                displayUserData(data);
+            } catch (err) {
+                error.textContent = err.message;
+                error.style.display = 'block';
+            } finally {
+                loading.style.display = 'none';
+            }
+        });
+
+        function displayUserData(data) {
+            // Display user info
+            document.getElementById('avatar').src = data.user_info.avatar_url;
+            document.getElementById('name').textContent = data.user_info.name || data.user_info.username;
+            document.getElementById('username-display').textContent = `@${data.user_info.username}`;
+            document.getElementById('bio').textContent = data.user_info.bio || '';
+            document.getElementById('location').textContent = data.user_info.location || '';
+            document.getElementById('company').textContent = data.user_info.company || '';
+
+            // Display stats
+            document.getElementById('repos').textContent = data.user_info.public_repos;
+            document.getElementById('followers').textContent = data.user_info.followers;
+            document.getElementById('following').textContent = data.user_info.following;
+            document.getElementById('stars').textContent = data.repository_stats.total_stars;
+            document.getElementById('forks').textContent = data.repository_stats.total_forks;
+
+            userInfo.style.display = 'block';
+            chartsContainer.style.display = 'grid';
+
+            // Create charts
+            createLanguagesChart(data.repository_stats.languages);
+            createActivityChart(data.activity_stats.event_types);
+        }
+
+        function createLanguagesChart(languages) {
+            const ctx = document.getElementById('languagesChart').getContext('2d');
+            if (languagesChart) languagesChart.destroy();
+
+            const labels = Object.keys(languages);
+            const values = Object.values(languages);
+
+            languagesChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: [
+                            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0',
+                            '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        function createActivityChart(eventTypes) {
+            const ctx = document.getElementById('activityChart').getContext('2d');
+            if (activityChart) activityChart.destroy();
+
+            const labels = Object.keys(eventTypes);
+            const values = Object.values(eventTypes);
+
+            activityChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Events',
+                        data: values,
+                        backgroundColor: '#667eea'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
