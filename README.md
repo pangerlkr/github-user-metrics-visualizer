@@ -1,5 +1,5 @@
 # GitHub User Metrics Visualizer
-
+##Panger
 A modern web application that fetches and visualizes GitHub user metrics, statistics, and contribution data through interactive charts and graphs.
 
 ## Features
