@@ -245,17 +245,17 @@
 
         function displayUserData(data) {
             // Display user info
-            document.getElementById('avatar').src = data.user_info.avatar_url;
-            document.getElementById('name').textContent = data.user_info.name || data.user_info.username;
-            document.getElementById('username-display').textContent = `@${data.user_info.username}`;
-            document.getElementById('bio').textContent = data.user_info.bio || '';
-            document.getElementById('location').textContent = data.user_info.location || '';
-            document.getElementById('company').textContent = data.user_info.company || '';
+            document.getElementById('avatar').src = data.user.avatar_url;
+            document.getElementById('name').textContent = data.user.name || data.user.username;
+            document.getElementById('username-display').textContent = `@${data.user.username}`;
+            document.getElementById('bio').textContent = data.user.bio || '';
+            document.getElementById('location').textContent = data.user.location || '';
+            document.getElementById('company').textContent = data.user.company || '';
 
             // Display stats
-            document.getElementById('repos').textContent = data.user_info.public_repos;
-            document.getElementById('followers').textContent = data.user_info.followers;
-            document.getElementById('following').textContent = data.user_info.following;
+            document.getElementById('repos').textContent = data.user.public_repos;
+            document.getElementById('followers').textContent = data.user.followers;
+            document.getElementById('following').textContent = data.user.following;
             document.getElementById('stars').textContent = data.repository_stats.total_stars;
             document.getElementById('forks').textContent = data.repository_stats.total_forks;
 
