@@ -13,7 +13,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/templates/index.html"
+      "dest": "api/index.py"
     }
   ]
 }
