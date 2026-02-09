@@ -231,7 +231,3 @@ def get_user_stats(username):
         'achievements': achievements
     })
 
-# Vercel serverless function handler
-def handler(request):
-    with app.request_context(request.environ):
-        return app.full_dispatch_request()
