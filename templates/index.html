@@ -256,14 +256,14 @@
             document.getElementById('repos').textContent = data.user.public_repos;
             document.getElementById('followers').textContent = data.user.followers;
             document.getElementById('following').textContent = data.user.following;
-            document.getElementById('stars').textContent = data.repository_stats.total_stars;
-            document.getElementById('forks').textContent = data.repository_stats.total_forks;
+            document.getElementById('stars').textContent = data.stats.total_stars;
+            document.getElementById('forks').textContent = data.stats.total_forks;
 
             userInfo.style.display = 'block';
             chartsContainer.style.display = 'grid';
 
             // Create charts
-            createLanguagesChart(data.repository_stats.languages);
+            createLanguagesChart(data.stats.languages);
             createActivityChart(data.activity_stats.event_types);
         }
 
