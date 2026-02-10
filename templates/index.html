@@ -142,6 +142,86 @@
             margin-bottom: 20px;
             display: none;
         }
+
+        /* README Generator Styles */
+        .readme-generator {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            margin-top: 40px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        .readme-generator h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #24292e;
+        }
+        .template-selector {
+            margin-bottom: 30px;
+        }
+        .template-options {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .template-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .template-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .template-btn.active {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            box-shadow: 0 5px 15px rgba(245, 87, 108, 0.4);
+        }
+        .readme-preview {
+            margin-bottom: 30px;
+        }
+        .readme-content {
+            background: #f6f8fa;
+            border: 1px solid #e1e4e8;
+            border-radius: 8px;
+            padding: 20px;
+            min-height: 300px;
+            max-height: 500px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .readme-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+        .copy-btn, .download-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .copy-btn:hover, .download-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+    
     </style>
 </head>
 <body>
@@ -207,6 +287,30 @@
             </div>
         </div>
     </div>
+
+            <!-- README Generator Section -->
+        <div class="readme-generator" id="readmeGenerator" style="display:none">
+            <h2>📝 Generate Your GitHub README</h2>
+            <div class="template-selector">
+                <h3>Choose a Template:</h3>
+                <div class="template-options">
+                    <button class="template-btn active" data-template="default">Default</button>
+                    <button class="template-btn" data-template="minimal">Minimal</button>
+                    <button class="template-btn" data-template="detailed">Detailed</button>
+                    <button class="template-btn" data-template="badges">Badges</button>
+                </div>
+            </div>
+            <div class="readme-preview">
+                <h3>Preview:</h3>
+                <div class="readme-content" id="readmeContent">
+                    <p>Select a username and template to generate your README...</p>
+                </div>
+            </div>
+            <div class="readme-actions">
+                <button class="copy-btn" id="copyReadme">📋 Copy to Clipboard</button>
+                <button class="download-btn" id="downloadReadme">⬇️ Download README.md</button>
+            </div>
+        </div>
 
     <script>
         const form = document.getElementById('searchForm');
@@ -330,6 +434,79 @@
                     }
                 }
             });
+        
+
+            // README Generator functionality
+            let currentTemplate = 'default';
+            let currentReadmeText = '';
+
+            // Template button handlers
+            document.querySelectorAll('.template-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.template-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentTemplate = this.dataset.template;
+                    if (window.currentUsername) {
+                        generateReadme(window.currentUsername, currentTemplate);
+                    }
+                });
+            });
+
+            // Generate README function
+            async function generateReadme(username, template) {
+                try {
+                    const response = await fetch(`/api/generate-readme/${username}?template=${template}`);
+                    const data = await response.json();
+                    
+                    if (data.readme) {
+                        currentReadmeText = data.readme;
+                        document.getElementById('readmeContent').textContent = currentReadmeText;
+                    }
+                } catch (error) {
+                    console.error('Error generating README:', error);
+                    document.getElementById('readmeContent').textContent = 'Error generating README. Please try again.';
+                }
+            }
+
+            // Copy to clipboard
+            document.getElementById('copyReadme').addEventListener('click', function() {
+                navigator.clipboard.writeText(currentReadmeText).then(() => {
+                    this.textContent = '✔️ Copied!';
+                    setTimeout(() => {
+                        this.textContent = '📋 Copy to Clipboard';
+                    }, 2000);
+                });
+            });
+
+            // Download README
+            document.getElementById('downloadReadme').addEventListener('click', function() {
+                const blob = new Blob([currentReadmeText], { type: 'text/markdown' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'README.md';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+
+            // Show README generator when user data is loaded
+            const originalFetch = window.fetch;
+            window.fetch = function(...args) {
+                return originalFetch.apply(this, args).then(response => {
+                    if (args[0] && args[0].includes('/api/user/')) {
+                        response.clone().json().then(data => {
+                            if (data.user) {
+                                window.currentUsername = data.user.login;
+                                document.getElementById('readmeGenerator').style.display = 'block';
+                                generateReadme(window.currentUsername, currentTemplate);
+                            }
+                        });
+                    }
+                    return response;
+                });
+            };
         }
     </script>
 </body>
