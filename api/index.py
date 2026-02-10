@@ -231,3 +231,250 @@ def get_user_stats(username):
         'achievements': achievements
     })
 
+@app.route('/api/generate-readme/<username>', methods=['GET'])
+def generate_readme(username):
+    """Generate README markdown with multiple template options"""
+    template = request.args.get('template', 'default')
+    
+    # Fetch user data
+    user_data = fetch_user_data(username)
+    if not user_data:
+        return jsonify({'error': 'User not found'}), 404
+    
+    repos = fetch_user_repos(username)
+    events = fetch_user_events(username)
+    
+    language_stats = calculate_language_stats(repos)
+    contribution_stats = calculate_contribution_stats(events)
+    streak_data = calculate_streak_data(events)
+    achievements = calculate_achievements(user_data, repos, events, contribution_stats)
+    
+    total_stars = sum(repo.get('stargazers_count', 0) for repo in repos)
+    total_forks = sum(repo.get('forks_count', 0) for repo in repos)
+    
+    # Generate README based on template
+    if template == 'minimal':
+        readme = generate_minimal_template(user_data, language_stats, total_stars, total_forks)
+    elif template == 'detailed':
+        readme = generate_detailed_template(user_data, language_stats, contribution_stats, streak_data, achievements, total_stars, total_forks)
+    elif template == 'badges':
+        readme = generate_badges_template(user_data, language_stats, contribution_stats, total_stars, total_forks)
+    else:  # default
+        readme = generate_default_template(user_data, language_stats, contribution_stats, total_stars, total_forks)
+    
+    return jsonify({'readme': readme, 'template': template})
+
+def generate_default_template(user_data, languages, contributions, total_stars, total_forks):
+    """Generate default README template"""
+    username = user_data['login']
+    name = user_data.get('name', username)
+    bio = user_data.get('bio', '')
+    location = user_data.get('location', '')
+    
+    # Language badges
+    lang_badges = ''
+    for lang in list(languages.keys())[:5]:
+        lang_badges += f'![{lang}](https://img.shields.io/badge/-{lang}-blue?style=flat-square) '
+    
+    readme = f"""# Hi there, I'm {name} 👋\n\n"""
+    if bio:
+        readme += f"*{bio}*\n\n"
+    if location:
+        readme += f"📍 {location}\n\n"
+    
+    readme += f"""## 🚀 About Me\n\n"""
+    readme += f"- 🔭 I have {user_data['public_repos']} public repositories\n"
+    readme += f"- ⭐ Total stars received: {total_stars}\n"
+    readme += f"- 🍴 Total forks: {total_forks}\n"
+    readme += f"- 👥 Followers: {user_data['followers']}\n\n"
+    
+    readme += f"""## 💻 Tech Stack\n\n{lang_badges}\n\n"""
+    
+    readme += f"""## 📊 GitHub Stats\n\n"""
+    readme += f"![{name}'s GitHub stats](https://github-readme-stats.vercel.app/api?username={username}&show_icons=true&theme=radical)\n\n"
+    readme += f"![Top Languages](https://github-readme-stats.vercel.app/api/top-langs/?username={username}&layout=compact&theme=radical)\n\n"
+    
+    readme += f"""## 🏆 GitHub Trophies\n\n"""
+    readme += f"![trophy](https://github-profile-trophy.vercel.app/?username={username}&theme=radical&no-frame=false&no-bg=false&margin-w=4)\n\n"
+    
+    readme += f"""---\n📫 How to reach me: [GitHub](https://github.com/{username})\n"""
+    
+    return readme
+
+def generate_minimal_template(user_data, language_stats, total_stars, total_forks):
+    """Generate minimal README template"""
+    username = user_data['login']
+    name = user_data.get('name', username)
+    
+    readme = f"""# {name} 👋
+
+{user_data.get('bio', '')}
+
+## 📊 Quick Stats
+- ⭐ Total stars received: {total_stars}
+- 🍴 Total forks: {total_forks}
+- 👥 Followers: {user_data['followers']}
+"""
+    return readme
+
+def generate_detailed_template(user_data, language_stats, contribution_stats, streak_data, achievements, total_stars, total_forks):
+    """Generate detailed README template"""
+    username = user_data['login']
+    name = user_data.get('name', username)
+    bio = user_data.get('bio', '')
+    location = user_data.get('location', '')
+    
+    readme = f"""# {name} 👋
+
+{bio}
+
+## 🌟 About Me
+- 📍 Location: {location}
+- 🏢 Company: {user_data.get('company', 'N/A')}
+- 🔗 Website: {user_data.get('blog', 'N/A')}
+- 📫 How to reach me: [GitHub](https://github.com/{username})
+
+## 📈 GitHub Statistics
+
+### Overview
+- ⭐ Total stars received: {total_stars}
+- 🍴 Total forks: {total_forks}
+- 📦 Public repositories: {user_data['public_repos']}
+- 👥 Followers: {user_data['followers']} | Following: {user_data['following']}
+
+### Activity Stats
+- 🔥 Current Streak: {streak_data.get('current_streak', 0)} days
+- 📅 Longest Streak: {streak_data.get('longest_streak', 0)} days
+- 💻 Total Contributions: {contribution_stats.get('total_contributions', 0)}
+
+### Top Languages
+"""
+    
+    # Add top 5 languages
+    sorted_langs = sorted(language_stats.items(), key=lambda x: x[1], reverse=True)[:5]
+    for lang, count in sorted_langs:
+        readme += f"- {lang}: {count} repositories\n"
+    
+    readme += f"""
+
+### 🏆 Achievements
+"""
+    for achievement in achievements[:5]:  # Top 5 achievements
+        readme += f"- {achievement.get('icon', '🏅')} {achievement.get('name', 'Achievement')}: {achievement.get('description', '')}\n"
+    
+    readme += f"""
+
+---
+
+![GitHub Stats](https://github-readme-stats.vercel.app/api?username={username}&show_icons=true&theme=radical)
+![Top Languages](https://github-readme-stats.vercel.app/api/top-langs/?username={username}&layout=compact&theme=radical)
+![GitHub Profile Trophy](https://github-profile-trophy.vercel.app/?username={username}&theme=radical&no-frame=false&no-bg=false)
+"""
+    
+    return readme
+
+def generate_badges_template(user_data, language_stats, contribution_stats, total_stars, total_forks):
+    """Generate README with focus on badges and visual elements"""
+    username = user_data['login']
+    name = user_data.get('name', username)
+    
+    # Language badges
+    lang_badges = ''
+    for lang in list(language_stats.keys())[:5]:
+        lang_badges += f'![{lang}](https://img.shields.io/badge/-{lang}-blue?style=flat-square) '
+    
+    readme = f"""# {name} 👋
+
+{user_data.get('bio', '')}
+
+## 🛠️ Technologies & Tools
+
+{lang_badges}
+
+## 📊 GitHub Stats
+
+![Profile Views](https://komarev.com/ghpvc/?username={username}&color=brightgreen)
+![Stars](https://img.shields.io/badge/Total%20Stars-{total_stars}-yellow?style=flat-square)
+![Forks](https://img.shields.io/badge/Total%20Forks-{total_forks}-blue?style=flat-square)
+![Repos](https://img.shields.io/badge/Public%20Repos-{user_data['public_repos']}-green?style=flat-square)
+![Followers](https://img.shields.io/badge/Followers-{user_data['followers']}-red?style=flat-square)
+
+## 📈 Activity
+
+[![GitHub Streak](https://github-readme-streak-stats.herokuapp.com/?user={username}&theme=dark)](https://github.com/{username})
+
+![{name}'s GitHub Stats](https://github-readme-stats.vercel.app/api?username={username}&show_icons=true&theme=radical&hide_border=true)
+
+![Top Languages](https://github-readme-stats.vercel.app/api/top-langs/?username={username}&layout=compact&theme=radical&hide_border=true)
+
+## 🏆 GitHub Trophies
+
+![trophy](https://github-profile-trophy.vercel.app/?username={username}&theme=radical&no-frame=false&no-bg=false&margin-w=4)
+
+## 📫 Connect with Me
+
+[![GitHub](https://img.shields.io/badge/GitHub-{username}-black?style=for-the-badge&logo=github)](https://github.com/{username})
+"""
+    
+    if user_data.get('blog'):
+        readme += f"[![Website](https://img.shields.io/badge/Website-{user_data['blog']}-blue?style=for-the-badge&logo=google-chrome)]({user_data['blog']})\n"
+    
+    if user_data.get('twitter_username'):
+        readme += f"[![Twitter](https://img.shields.io/badge/Twitter-{user_data['twitter_username']}-blue?style=for-the-badge&logo=twitter)](https://twitter.com/{user_data['twitter_username']})\n"
+    
+    return readme
+
+@app.route('/')
+def index():
+    """Render the main page"""
+    return send_from_directory('..', 'index.html')
+
+@app.route('/api/user/<username>')
+def get_user_data_api(username):
+    """Get user data API endpoint"""
+    # Fetch user data
+    user_data = fetch_user_data(username)
+    if not user_data:
+        return jsonify({'error': 'User not found'}), 404
+    
+    repos = fetch_user_repos(username)
+    events = fetch_user_events(username)
+    
+    language_stats = calculate_language_stats(repos)
+    contribution_stats = calculate_contribution_stats(events)
+    activity_stats = calculate_activity_stats(events)
+    activity_times = analyze_activity_times(events)
+    streak_data = calculate_streak_data(events)
+    achievements = calculate_achievements(user_data, repos, events, contribution_stats)
+    
+    # Calculate total stars and forks
+    total_stars = sum(repo.get('stargazers_count', 0) for repo in repos)
+    total_forks = sum(repo.get('forks_count', 0) for repo in repos)
+    
+    return jsonify({
+        'user': {
+            'name': user_data.get('name', username),
+            'login': user_data['login'],
+            'avatar_url': user_data['avatar_url'],
+            'bio': user_data.get('bio', ''),
+            'location': user_data.get('location', ''),
+            'company': user_data.get('company', ''),
+            'blog': user_data.get('blog', ''),
+            'twitter_username': user_data.get('twitter_username', ''),
+            'followers': user_data['followers'],
+            'following': user_data['following'],
+            'public_repos': user_data['public_repos'],
+            'created_at': user_data['created_at']
+        },
+        'stats': {
+            'total_stars': total_stars,
+            'total_forks': total_forks,
+            'languages': language_stats,
+            'activity': activity_stats,
+            'contributions': contribution_stats,
+            'activity_times': activity_times,
+            'streak': streak_data
+        },
+        'achievements': achievements
+    })
+
